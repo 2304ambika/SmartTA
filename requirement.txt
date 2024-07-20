@@ -1,0 +1,4 @@
+Flask Flask-CORS openai langchain langchain_community
+
+langchain(0.2.1->0.1.17)
+openai(1.30.3->0.28.1)
