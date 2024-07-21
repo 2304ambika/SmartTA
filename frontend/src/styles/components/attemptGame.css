@@ -1,0 +1,85 @@
+#game{
+    background-image: url('../../assets/img/whiteboard.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: space-around;
+    height: 88vh;
+    width: 50wh;
+
+    section{
+        /* background-color: rgba(93, 97, 102, 0.7); */
+        padding-top: 10%;
+        padding-left: 2rem;
+        padding-right: 2rem;
+        height: 80%;
+        width: 35%;
+        position: relative;
+    }
+
+    h1 {
+        font-size:xx-large;
+        text-align: center;
+        color: crimson;
+    }
+
+    .play-button-container{
+        margin-top: 30px;
+        width: 100%;
+    }
+
+    a.play-button{
+        background-color: rgb(105, 208, 105);
+        color: crimson;
+        border-radius: 30px;
+        display: block;
+        cursor: pointer;
+        padding: 1rem;
+        text-align: center;
+        transition: 0.3s linear all;
+    }
+
+    a.play-button:hover{
+        background-color: rgb(105, 168, 105);
+    }
+
+    #login-button:hover{
+        background-color: rgb(220,0,0);
+    }
+
+    #register-button:hover{
+        background-color: rgb(18, 167, 200);
+    }
+
+    .auth-container{
+        width: 100%;
+        display: flex;
+        margin-top: 40px;
+        justify-content: space-around;
+    }
+
+    #login-button{
+        background-color:red;
+    }
+
+    #register-button{
+        background-color:rgb(18, 167, 230);
+    }
+
+    .auth-container .auth-buttons{
+        color: white;
+        cursor: pointer;
+        border-radius: 30px;
+        padding: 1rem 0;
+        text-align: center;
+        width: 45%;
+    }
+}
+
+@media (max-width: 768px) {
+    #home section {
+        padding: 0 1rem;
+        width: 100%;
+        height: 100%;
+    }
+}

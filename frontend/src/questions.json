@@ -1,0 +1,42 @@
+[
+    {
+        "question": "What does 'Resources Pooling' in cloud computing mean?",
+        "a": "Tracking server uptimes and network storage",
+        "b": "Using a multi-tenant model to deliver resources to various customers",
+        "c": "Providing automatic system updates",
+        "d": "Monitoring computing functionalities",
+        "answer": "b"
+    },
+    {
+        "question": "Which feature of cloud computing allows users to access data from anywhere with an Internet connection?",
+        "a": "On-Demand Self-Service",
+        "b": "Automatic System",
+        "c": "Large Network Access",
+        "d": "Measured Service",
+        "answer": "c"
+    },
+    {
+        "question": "What is one of the main advantages of 'On-Demand Self-Service' in cloud computing?",
+        "a": "It allows users to track server uptimes and network storage",
+        "b": "It provides a snapshot of the data stored",
+        "c": "It saves the host from monthly or annual costs",
+        "d": "It allows resource pooling",
+        "answer": "a"
+    },
+    {
+        "question": "Which of the following is NOT listed as a challenge in cloud computing?",
+        "a": "Security & Privacy",
+        "b": "Interoperability & Portability",
+        "c": "Automatic System",
+        "d": "Downtime",
+        "answer": "c"
+    },
+    {
+        "question": "How does cloud computing handle security for stored data?",
+        "a": "By providing a snapshot of the data stored",
+        "b": "By offering on-demand self-service",
+        "c": "By allowing large network access",
+        "d": "By providing easy maintenance",
+        "answer": "a"
+    }
+]
