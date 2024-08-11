@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Container, TextField, Button, Typography, Box } from '@mui/material';
+import { Container, TextField, Button, Typography } from '@mui/material';
+import { url_backend } from '../constant';
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -40,7 +41,7 @@ const ResetPassword = () => {
     }
 
     try {
-      await axios.post(`http://localhost:5000/reset/${encodeURIComponent(token)}`, { password });
+      const response = await axios.post(`${url_backend}/reset/${token}`, { password });
       alert('Password has been reset successfully');
       navigate('/login');
     } catch (error) {

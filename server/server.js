@@ -8,8 +8,10 @@ const PPTX = require('pptxgenjs');
 const connectDB = require('./db'); // Import the database connection
 const Question = require('./models/Question');
 const User = require('./models/User');
+const Poll = require('./models/Poll');
 const Score = require('./models/Score');
-const bcrypt = require('bcrypt');
+const PasswordResetToken = require('./models/PasswordResetToken'); 
+const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');  // Import uuidv4
@@ -21,12 +23,17 @@ const OpenAI = require('openai');
 const { PDFDocument } = require('pdf-lib');
 const axios = require('axios');
 const { Document, Packer, Paragraph, TextRun } = require('docx'); // Import from docx package
+const http = require('http');
+const socketIo = require('socket.io');
+// const { url_backend } = require('./constant');
+require('dotenv').config();
 
 // Initialize OpenAI with your API key
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
 });
 
+// console.log("openai",process.env.REACT_APP_OPENAI_API_KEY);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -36,9 +43,20 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static('public')); // Serve static files from the 'public' directory
 
 // Connect to MongoDB
 connectDB();
+
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  }
+});
+
 
 //score
 app.post('/api/scores', async (req, res) => {
@@ -161,12 +179,16 @@ app.post('/forgot-password', async (req, res) => {
     }
 
     const token = crypto.randomBytes(20).toString('hex');
-    const expirationTime = Date.now() + 300000; // 5 minutes
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = expirationTime;
-    await user.save();
+    const expires = Date.now() + 300000; // 5 minutes
+    const resetToken = new PasswordResetToken({
+      userId: user._id,
+      token,
+      expires
+    });
 
-    const resetLink = `http://localhost:3000/reset/${encodeURIComponent(token)}?expires=${expirationTime}`;
+    await resetToken.save();
+
+    const resetLink =`http://localhost:5000/reset/${encodeURIComponent(token)}?expires=${expires}`;
 
     const mailOptions = {
       to: user.email,
@@ -191,25 +213,57 @@ app.post('/forgot-password', async (req, res) => {
   }
 });
 
+// app.post('/reset/:token', async (req, res) => {
+//   const { token } = req.params;
+//   const { password } = req.body;
+
+//   try {
+//     const user = await User.findOne({
+//       resetPasswordToken: token,
+//       resetPasswordExpires: { $gt: Date.now() }
+//     });
+
+//     if (!user) {
+//       return res.status(400).send('Password reset token is invalid or has expired');
+//     }
+
+//     // user.password = await bcrypt.hash(password, 10);
+//     user.password = req.body.password;
+//     user.resetPasswordToken = undefined;
+//     user.resetPasswordExpires = undefined;
+//     await user.save();
+
+//     res.status(200).send('Password has been updated');
+//   } catch (error) {
+//     console.error('Error resetting password:', error);
+//     res.status(500).send('Server error');
+//   }
+// });
+
 app.post('/reset/:token', async (req, res) => {
   const { token } = req.params;
   const { password } = req.body;
 
   try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+    const resetToken = await PasswordResetToken.findOne({
+      token,
+      expires: { $gt: Date.now() }
     });
 
-    if (!user) {
+    if (!resetToken) {
       return res.status(400).send('Password reset token is invalid or has expired');
     }
 
-    // user.password = await bcrypt.hash(password, 10);
-    user.password = req.body.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    const user = await User.findById(resetToken.userId);
+
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    user.password = await bcrypt.hash(password, 10);
     await user.save();
+
+    await PasswordResetToken.findByIdAndDelete(resetToken._id);
 
     res.status(200).send('Password has been updated');
   } catch (error) {
@@ -228,6 +282,146 @@ const formatDate = (date) => {
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
 
+
+//Create Poll Routes
+
+pollFormat=`
+          [
+            {
+              "question": "What is the highest achievement of the Indian national football team in the AFC Asian Cup?",
+              "options": ["Winners", "Runners-up", "Semi-finalists", "Quarter-finalists"],
+              "answer": "Winners",
+              "hint": "Think about the historical tournaments where India made significant progress in Asian football."
+            },
+            {
+              "question": "Who is considered one of the most legendary players of the Indian football team, often referred to as the 'Bhaichung Bhutia of the modern era'?",
+              "options": ["Sunil Chhetri", "Gurpreet Singh Sandhu", "Sandesh Jhingan", "Jeje Lalpekhlua"],
+              "answer":"Sunil Chhetri"
+              "hint": "He is among the world's top international goal-scorers and is a current icon in Indian football."
+            }
+          ]
+        `
+// Create a new poll
+const generatePolls = async (prompt, count) => {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: 'You are a Poll creator.' },
+      { role: 'user', content: `Generate ${count} poll questions with options, answer and hints based on the following topic: ${prompt}. The output should be in following format: ${pollFormat}.` },
+    ],
+    max_tokens: 500,
+  });
+  console.log(formatQues(response.choices[0].message.content));
+    let questions;
+
+  try {
+    questions = formatQues(response.choices[0].message.content); // Parse the JSON string into an object
+  } catch (e) {
+    console.error('Failed to parse content:', e);
+  }
+
+  const pollQuestions = questions.map((question) => {
+    // Parse the response to extract questions, options, and hints
+    return {
+      question: question.question,
+      options: question.options,
+      correctAnswer: question.answer,
+      hints: question.hint,
+    };
+  });
+  console.log("PollQuestions",pollQuestions);
+  return pollQuestions;
+};
+
+app.post('/generate-poll', async (req, res) => {
+  const { prompt, count } = req.body;
+
+  try {
+    const pollQuestions = await generatePolls(prompt, count);
+    
+    // Save each question in the database
+    const polls = await Promise.all(pollQuestions.map(async (q) => {
+      const poll = new Poll({
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        hints: q.hints,
+        responses: {
+          A: 0,
+          B: 0,
+          C: 0,
+          D: 0
+        },
+        status: 'active',
+      });
+      return poll.save();
+    }));
+
+    io.emit('pollCreated', polls);
+    res.json({ polls });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get('/latest-polls', async (req, res) => {
+  try {
+    const polls = await Poll.find({ status: 'active' });
+    res.json(polls);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+
+app.post('/submit-response', async (req, res) => {
+  const { pollId, selectedOption } = req.body;
+  const poll = await Poll.findById(pollId);
+  console.log("poll",poll);
+  if (!poll) {
+    return res.status(404).send('Poll not found');
+  }
+
+  // Find the key corresponding to the selected option value
+  const optionKey = Object.keys(poll.options).find(key => poll.options[key] === selectedOption);
+  const numericOptionKey = optionKey !== undefined ? parseInt(optionKey, 10) : 0;
+  console.log('optionKey value:', numericOptionKey);
+  console.log('optionKey', String.fromCharCode(65 + numericOptionKey));
+
+  if (optionKey && String.fromCharCode(65 + numericOptionKey) in poll.responses){
+    poll.responses[String.fromCharCode(65 + numericOptionKey)] += 1;
+    console.log("response",poll.responses[String.fromCharCode(65 + numericOptionKey)]);
+    await poll.save();
+    io.emit('pollUpdated', poll); // Emit event to all clients
+    res.json({ poll });
+  } else {
+    res.status(400).send('Invalid option');
+  }
+});
+
+
+
+app.get('/poll/:pollId', async (req, res) => {
+  const poll = await Poll.findById(req.params.pollId);
+  if (!poll) {
+    return res.status(404).send('Poll not found');
+  }
+  res.json({ poll });
+});
+
+app.post('/end-poll', async (req, res) => {
+  const { pollId } = req.body;
+  await Poll.findByIdAndUpdate(pollId, { status: 'ended' });
+  io.emit('pollEnded', pollId); // Emit event to all clients
+  res.status(200).send('Poll ended');
+});
+
+io.on('connection', (socket) => {
+  console.log('a user connected');
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
 app.post('/save-questions', async (req, res) => {
   const { questions, purpose, title } = req.body;
 
@@ -315,9 +509,15 @@ app.put('/edit-questions', async (req, res) => {
   try {
     const processedQuestions = updatedQuestions.map(question => {
       // Capitalize correct_options before updating
-      question.correct_options = question.correct_options.map(ans => ans.toUpperCase());
+      if (question.correct_options && Array.isArray(question.correct_options)) {
+        question.correct_options = question.correct_options.map(ans => ans.toUpperCase());
+      } else {
+        question.correct_options = []; // Handle cases where correct_options is undefined or not an array
+      }
+      // question.correct_options = question.correct_options.map(ans => ans.toUpperCase());
       return question;
     });
+    console.log('processedQuestions',processedQuestions);
     const promises = processedQuestions.map(async (updatedQuestion) => {
       const { _id, ...questions } = updatedQuestion;
       try {
@@ -1016,15 +1216,16 @@ You are an AI assistant that helps in analyzing images of whiteboards. The image
 ### Extracted Content
 
 #### Text:
-<Extracted text here>
+<Extracted text here or 'None' if no text is present>
 
 #### Table:
 | Column 1 | Column 2 | Column 3 |
 |----------|----------|----------|
 | Data 1   | Data 2   | Data 3   |
+or 'None' if no table is present
 
 #### Diagram:
-Description of the diagram here.
+Description of the diagram here or 'None' if no diagram is present.
 
 Here is an example:
 
@@ -1042,6 +1243,8 @@ Server virtualization is used to improve resource management.
 
 #### Diagram:
 A diagram showing the distribution of tasks to virtual servers from a physical server.
+
+If the image does not contain any text, table, or diagram, please indicate 'None' for the respective sections.
 
 Now, analyze the following image and provide the content in the same format:
 `;
@@ -1135,7 +1338,12 @@ app.get('/download/:filename', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
+
+server.listen(PORT, () => {
+  console.log("server running");
 });
+
 

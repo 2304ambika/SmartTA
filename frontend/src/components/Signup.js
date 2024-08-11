@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { TextField, Button,Box, Select, MenuItem, FormControl, InputLabel, Typography, Card, CardContent,Container } from '@mui/material';
+import { TextField, Button,Box, Select, MenuItem, FormControl,InputAdornment, InputLabel, Typography, Card, CardContent,Container } from '@mui/material';
+import { url_backend } from '../constant';
+import Navbar from './Navbar';
+import { AccountCircle, School, Email, Lock, LockOpen, Person, Home, Login } from '@mui/icons-material';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -26,7 +29,7 @@ const Signup = () => {
      }
 
     try {
-      const response = await axios.post('http://localhost:5000/signup', {
+      const response = await axios.post(url_backend+'/signup', {
         name,
         department,
         email,
@@ -50,37 +53,139 @@ const Signup = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-    <Card>
-    <CardContent>
-      <Typography variant="h4">Sign Up</Typography>
-      <Box display={'flex'} >
-      <TextField label="Name" value={name} onChange={(e) => setName(e.target.value)} fullWidth margin="normal" />
-      <TextField label="Department" value={department} onChange={(e) => setDepartment(e.target.value)} fullWidth margin="normal" />
-      </Box>
-      <Box display={'flex'} justifyContent={'space-between'}>
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Role</InputLabel>
-        <Select value={role} onChange={(e) => setRole(e.target.value)}>
-          <MenuItem value="student">Student</MenuItem>
-          <MenuItem value="teacher">Teacher</MenuItem>
-        </Select>
-      </FormControl>
-      <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} fullWidth margin="normal" />
-        </Box>
-      <Box display={'flex'} justifyContent={'space-between'}>
-      <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth margin="normal" />
-      <TextField label="Confirm Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} fullWidth margin="normal" />
-      </Box>
-      <Box textAlign={'center'}>
-      <Button variant="contained" color="primary" onClick={handleSignup}>Sign Up</Button>
-      <Typography variant="body1">
-        Already have an account? <Link to="/login">Login</Link>
-      </Typography>
-      </Box>
-      </CardContent>
-    </Card>
-    </Container>
+    <Box>
+      <Navbar />
+      <Container sx={{ marginTop: 4 }}>
+        <Container maxWidth="md" sx={{ mt: 4 }}>
+          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+            <CardContent>
+              <Typography variant="h4" gutterBottom sx={{ textAlign: 'center' }}>Sign Up</Typography>
+              <Box display="flex" gap={2}>
+                <TextField
+                  label="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <TextField
+                  label="Department"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <School />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display="flex" justifyContent="space-between" gap={2}>
+                <FormControl fullWidth margin="normal" sx={{ flex: 1 }}>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    startAdornment={
+                      <InputAdornment position="start">
+                        <AccountCircle />
+                      </InputAdornment>
+                    }
+                  >
+                    <MenuItem value="student">Student</MenuItem>
+                    <MenuItem value="teacher">Teacher</MenuItem>
+                  </Select>
+                </FormControl>
+                <TextField
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Email />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box display="flex" justifyContent="space-between" gap={2}>
+                <TextField
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Lock />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                <TextField
+                  label="Confirm Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  fullWidth
+                  margin="normal"
+                  sx={{ flex: 1 }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOpen />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+              <Box textAlign="center" sx={{ mt: 3 }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleSignup}
+                  startIcon={<AccountCircle />}
+                  sx={{
+                    textTransform: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '8px',
+                    backgroundColor: '#1976d2',
+                    '&:hover': {
+                      backgroundColor: '#115293',
+                    },
+                  }}
+                >
+                  Sign Up
+                </Button>
+                <Typography variant="body1" sx={{ mt: 2 }}>
+                  Already have an account? <Link to="/login" style={{ color: '#1976d2', textDecoration: 'none' }}>Login</Link>
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      </Container>
+    </Box>
   );
 };
 
